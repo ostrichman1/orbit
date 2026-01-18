@@ -524,6 +524,7 @@ export default withPermissionCheck(
       
       // Apply post-computation filters (for computed fields like minutes, rank, etc.)
       let filteredUsers = computedUsers;
+      let paginatedUsers: any[] = [];
       
       if (needsFullComputation) {
         for (const filter of computedFilters) {
