@@ -72,8 +72,12 @@ export default withPermissionCheck(
       const needsFullComputation = computedFilters.length > 0;
 
       let allUsers: any[] = [];
-      let paginatedUsers: any[] = [];
       let totalFilteredUsers = 0;
+
+      const totalCount = await prisma.user.count({
+        where: whereClause,
+      });
+      totalFilteredUsers = totalCount;
 
       if (needsFullComputation) {
         allUsers = await prisma.user.findMany({
@@ -115,51 +119,56 @@ export default withPermissionCheck(
           },
         });
       } else {
-        const totalCount = await prisma.user.count({
+        const userIds = await prisma.user.findMany({
           where: whereClause,
-        });
-        totalFilteredUsers = totalCount;
-
-        allUsers = await prisma.user.findMany({
-          where: whereClause,
+          select: { userid: true },
           skip: page * pageSize,
           take: pageSize,
-          include: {
-            book: true,
-            wallPosts: true,
-            inactivityNotices: true,
-            sessions: true,
-            ranks: {
-              where: {
-                workspaceGroupId,
-              },
-            },
-            roles: {
-              where: {
-                workspaceGroupId,
-              },
-              include: {
-                quotaRoles: {
-                  include: {
-                    quota: true,
-                  },
-                },
-              },
-            },
-            workspaceMemberships: {
-              where: {
-                workspaceGroupId,
-              },
-              include: {
-                departmentMembers: {
-                  include: {
-                    department: true,
-                  },
-                },
-              },
-            },
-          },
+          orderBy: { userid: 'asc' },
         });
+
+        const userIdsList = userIds.map((u) => u.userid);
+
+        if (userIdsList.length > 0) {
+          allUsers = await prisma.user.findMany({
+            where: { userid: { in: userIdsList } },
+            include: {
+              book: true,
+              wallPosts: true,
+              inactivityNotices: true,
+              sessions: true,
+              ranks: {
+                where: {
+                  workspaceGroupId,
+                },
+              },
+              roles: {
+                where: {
+                  workspaceGroupId,
+                },
+                include: {
+                  quotaRoles: {
+                    include: {
+                      quota: true,
+                    },
+                  },
+                },
+              },
+              workspaceMemberships: {
+                where: {
+                  workspaceGroupId,
+                },
+                include: {
+                  departmentMembers: {
+                    include: {
+                      department: true,
+                    },
+                  },
+                },
+              },
+            },
+          });
+        }
       }
 
       const robloxRoles = await noblox.getRoles(workspaceGroupId).catch(() => []);

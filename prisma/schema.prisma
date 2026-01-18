@@ -32,6 +32,7 @@ model workspace {
   members           workspaceMember[]
   policyLinks       PolicyShareableLink[]
   stickyAnnouncements StickyAnnouncement[]
+  userWorkspaceStats UserWorkspaceStats[]
 }
 
 model config {
@@ -86,6 +87,9 @@ model user {
   roleMembers          RoleMember[]
   policyAcknowledgments PolicyAcknowledgment[]
   createdPolicyLinks   PolicyShareableLink[]
+  workspaceStats       UserWorkspaceStats[]
+
+  @@index([username])
 }
 
 model userInfo {
@@ -307,6 +311,12 @@ model ActivitySession {
   archiveEndDate   DateTime?
   user             user      @relation(fields: [userId], references: [userid])
   workspace        workspace @relation(fields: [workspaceGroupId], references: [groupId])
+
+  @@index([userId])
+  @@index([workspaceGroupId])
+  @@index([startTime])
+  @@index([endTime])
+  @@index([userId, workspaceGroupId, startTime])
 }
 
 model apiKey {
@@ -569,4 +579,26 @@ model PolicyShareableLink {
   @@index([documentId])
   @@index([workspaceGroupId])
   @@index([createdById])
+}
+
+model UserWorkspaceStats {
+  id                 String   @id @default(uuid()) @db.Uuid
+  userId             BigInt
+  workspaceGroupId   Int
+  totalMinutes       Int      @default(0)
+  totalIdleMinutes   Int      @default(0)
+  warningCount       Int      @default(0)
+  messageCount       Int      @default(0)
+  sessionsHosted     Int      @default(0)
+  sessionsAttended   Int      @default(0)
+  allianceVisits     Int      @default(0)
+  inactivityNotices  Int      @default(0)
+  updatedAt          DateTime @updatedAt
+
+  user               user     @relation(fields: [userId], references: [userid], onDelete: Cascade)
+  workspace          workspace @relation(fields: [workspaceGroupId], references: [groupId], onDelete: Cascade)
+
+  @@unique([userId, workspaceGroupId])
+  @@index([workspaceGroupId])
+  @@index([userId])
 }

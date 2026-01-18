@@ -37,6 +37,7 @@ import { useRouter } from "next/router";
 import moment from "moment";
 import { withPermissionCheckSsr } from "@/utils/permissionsManager";
 import { getConfig } from "@/utils/configEngine";
+import { useDebounce } from "@/hooks/useDebounce";
 import {
   IconArrowLeft,
   IconFilter,
@@ -218,6 +219,8 @@ const Views: pageWithLayout<pageProps> = ({ isAdmin, hasManageViewsPerm, hasCrea
   const [originalViewConfig, setOriginalViewConfig] = useState<any>(null);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
   const [totalUsers, setTotalUsers] = useState(0);
+
+  const debouncedColFilters = useDebounce(colFilters, 500);
 
   const ICON_OPTIONS: { key: string; Icon: any; title?: string }[] = [
     { key: "star", Icon: IconStar, title: "Star" },
@@ -474,7 +477,6 @@ const Views: pageWithLayout<pageProps> = ({ isAdmin, hasManageViewsPerm, hasCrea
     if (router.query.id && hasUseSavedViews()) loadSavedViews();
   }, [router.query.id]);
   
-  // Reset to page 0 when filters change
   useEffect(() => {
     setPagination((prev) => ({ ...prev, pageIndex: 0 }));
   }, [colFilters]);
@@ -491,7 +493,7 @@ const Views: pageWithLayout<pageProps> = ({ isAdmin, hasManageViewsPerm, hasCrea
             params: {
               page: pagination.pageIndex,
               pageSize: pagination.pageSize,
-              filters: JSON.stringify(colFilters),
+              filters: JSON.stringify(debouncedColFilters),
             },
           }
         );
@@ -510,7 +512,7 @@ const Views: pageWithLayout<pageProps> = ({ isAdmin, hasManageViewsPerm, hasCrea
     };
 
     fetchStaffData();
-  }, [router.query.id, pagination.pageIndex, pagination.pageSize, colFilters]);
+  }, [router.query.id, pagination.pageIndex, pagination.pageSize, debouncedColFilters]);
 
   const applySavedView = (view: any) => {
     if (!view) return;
